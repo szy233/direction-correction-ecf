@@ -15,6 +15,14 @@ import torch.nn.functional as F
 # Building blocks
 # ============================================================
 
+def num_groups(ch: int, max_groups: int = 32) -> int:
+    """Largest divisor of ch that is <= max_groups."""
+    for g in range(min(max_groups, ch), 0, -1):
+        if ch % g == 0:
+            return g
+    return 1
+
+
 class SinusoidalTimeEmbedding(nn.Module):
     """Sinusoidal positional embedding for the time variable t ∈ [0,1]."""
 
@@ -37,7 +45,7 @@ class ResBlock(nn.Module):
     def __init__(self, in_ch: int, out_ch: int, time_dim: int, dropout: float = 0.1):
         super().__init__()
         self.conv1 = nn.Sequential(
-            nn.GroupNorm(min(32, in_ch), in_ch),
+            nn.GroupNorm(num_groups(in_ch), in_ch),
             nn.SiLU(),
             nn.Conv2d(in_ch, out_ch, 3, padding=1),
         )
@@ -46,7 +54,7 @@ class ResBlock(nn.Module):
             nn.Linear(time_dim, out_ch * 2),  # scale and shift
         )
         self.conv2 = nn.Sequential(
-            nn.GroupNorm(min(32, out_ch), out_ch),
+            nn.GroupNorm(num_groups(out_ch), out_ch),
             nn.SiLU(),
             nn.Dropout(dropout),
             nn.Conv2d(out_ch, out_ch, 3, padding=1),
@@ -86,7 +94,7 @@ class SelfAttention(nn.Module):
 
     def __init__(self, ch: int):
         super().__init__()
-        self.norm = nn.GroupNorm(min(32, ch), ch)
+        self.norm = nn.GroupNorm(num_groups(ch), ch)
         self.qkv = nn.Conv2d(ch, ch * 3, 1)
         self.proj = nn.Conv2d(ch, ch, 1)
 
@@ -184,7 +192,7 @@ class UNet(nn.Module):
 
         # Output
         self.out = nn.Sequential(
-            nn.GroupNorm(min(32, ch), ch),
+            nn.GroupNorm(num_groups(ch), ch),
             nn.SiLU(),
             nn.Conv2d(ch, in_ch, 3, padding=1),
         )
