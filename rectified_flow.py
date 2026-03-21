@@ -7,6 +7,7 @@ Core identity: x_t = (1 - t) * x_0 + t * x_1
 The model learns v_θ(x_t, t) ≈ v_target = x_1 - x_0
 """
 
+import math
 import torch
 import torch.nn as nn
 from typing import Optional
@@ -219,14 +220,11 @@ class DirectionCorrectionSampler:
             t_batch = torch.full((x.shape[0],), t, device=device)
             v_current = self.edge_model(x, t_batch)
 
-            if step == 0:
-                # Apply direction correction only at t*: one-shot correction
-                v_corrected = v_current + delta_v_used
-                alpha_values.append(1.0)
-            else:
-                # Continue with pure edge after correction
-                v_corrected = v_current
-                alpha_values.append(0.0)
+            # Exponential decay: correction is strongest at t*, fades as t → 1
+            # α(step) = exp(-2 * step / edge_steps_after)
+            alpha = math.exp(-2.0 * step / edge_steps_after)
+            v_corrected = v_current + alpha * delta_v_used
+            alpha_values.append(alpha)
 
             x = x + v_corrected * dt
             t += dt
