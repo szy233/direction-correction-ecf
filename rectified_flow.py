@@ -212,7 +212,6 @@ class DirectionCorrectionSampler:
         dt = (1.0 - t_star) / edge_steps_after
         x = x_t_star.clone()
         t = t_star
-        v_at_t_star = v_edge.clone()  # store for adaptive α
 
         alpha_values = []
 
@@ -220,12 +219,14 @@ class DirectionCorrectionSampler:
             t_batch = torch.full((x.shape[0],), t, device=device)
             v_current = self.edge_model(x, t_batch)
 
-            # Adaptive α: cosine similarity between current velocity and t* velocity
-            alpha = self._compute_alpha(v_current, v_at_t_star)
-            alpha_values.append(alpha.mean().item())
-
-            # Corrected velocity
-            v_corrected = v_current + alpha[:, None, None, None] * delta_v_used
+            if step == 0:
+                # Apply direction correction only at t*: one-shot correction
+                v_corrected = v_current + delta_v_used
+                alpha_values.append(1.0)
+            else:
+                # Continue with pure edge after correction
+                v_corrected = v_current
+                alpha_values.append(0.0)
 
             x = x + v_corrected * dt
             t += dt
