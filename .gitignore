@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pth
+*.pt
+checkpoints/
+results/
+data/
+*.egg-info/
+.venv/
+wandb/
