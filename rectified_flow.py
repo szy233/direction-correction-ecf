@@ -220,11 +220,10 @@ class DirectionCorrectionSampler:
             t_batch = torch.full((x.shape[0],), t, device=device)
             v_current = self.edge_model(x, t_batch)
 
-            # Exponential decay: correction is strongest at t*, fades as t → 1
-            # α(step) = exp(-2 * step / edge_steps_after)
-            alpha = math.exp(-2.0 * step / edge_steps_after)
-            v_corrected = v_current + alpha * delta_v_used
-            alpha_values.append(alpha)
+            # Full correction: RF velocity is approximately constant along each
+            # trajectory, so δv(t*) is a valid correction for all t > t*
+            v_corrected = v_current + delta_v_used
+            alpha_values.append(1.0)
 
             x = x + v_corrected * dt
             t += dt
