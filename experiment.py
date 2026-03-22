@@ -332,6 +332,85 @@ def run_multi_point(args, device):
         print(f"{r['label']:>35s} {r['num_queries']:>7d} {r['fid']:>8.2f} {r['comm_kb']:>7.1f}KB")
 
 
+def run_multi_point_compression(args, device):
+    """
+    Experiment 5: Compression sweep for multi-point DC.
+
+    Use the best configs from Exp4 (2-point and 3-point) and sweep compression.
+    """
+    print("\n" + "=" * 70)
+    print("EXPERIMENT 5: Multi-Point DC Compression Sweep")
+    print("=" * 70)
+
+    cloud_model = load_model(build_cloud_model, args.cloud_ckpt, device)
+    edge_model = load_model(build_edge_model, args.edge_ckpt, device)
+    collab = DirectionCorrectionSampler(edge_model, cloud_model)
+    shape = (3, 32, 32)
+
+    ref_dir = prepare_cifar10_reference()
+
+    configs = [
+        ("2-point (0.5, 0.8)", [0.5, 0.8]),
+        ("3-point (0.3, 0.6, 0.8)", [0.3, 0.6, 0.8]),
+    ]
+    keep_ratios = [0.05, 0.10, 0.20, 0.50, 1.0]
+    bits = 4  # 4-bit and 8-bit are equivalent from Exp3
+
+    results = []
+
+    for label, qpts in configs:
+        for kr in keep_ratios:
+            print(f"\n--- {label}, keep={kr:.0%}, {bits}-bit ---")
+            torch.manual_seed(42)
+
+            compress_fn = make_compress_fn(keep_ratio=kr, bits=bits)
+
+            samples = generate_samples(
+                lambda x0, qp=qpts, cfn=compress_fn: collab.sample_multi_point_correction(
+                    x0, query_points=qp, total_steps=args.edge_steps * 2,
+                    compress_fn=cfn,
+                ),
+                args.num_samples, args.batch_size, shape, device
+            )
+
+            tag = f"{len(qpts)}pt_kr{kr}_b{bits}"
+            gen_dir = save_samples_to_dir(samples, f"{args.output_dir}/multi_point_compress/{tag}/")
+            fid = compute_fid(gen_dir, ref_dir, device=device)
+
+            # Communication: each δv is compressed independently
+            stats = compute_compression_ratio(torch.randn(1, 3, 32, 32), keep_ratio=kr, bits=bits)
+            total_comm_kb = stats['compressed_size_kb'] * len(qpts)
+
+            entry = {
+                'label': label,
+                'query_points': qpts,
+                'num_queries': len(qpts),
+                'keep_ratio': kr,
+                'bits': bits,
+                'fid': fid,
+                'per_dv_kb': stats['compressed_size_kb'],
+                'total_comm_kb': total_comm_kb,
+            }
+            results.append(entry)
+            print(f"  FID = {fid:.2f}, total comm = {total_comm_kb:.2f} KB")
+
+    # Save
+    results_path = os.path.join(args.output_dir, "experiment5_multi_point_compression.json")
+    with open(results_path, 'w') as f:
+        json.dump(results, f, indent=2)
+    print(f"\nResults saved to {results_path}")
+
+    # Summary table
+    print("\n" + "=" * 70)
+    print(f"{'Method':>30s} {'keep%':>6s} {'FID':>8s} {'Comm':>10s}")
+    print("-" * 56)
+    for r in results:
+        npt = r['num_queries']
+        print(f"{r['label']:>30s} {r['keep_ratio']:>5.0%} {r['fid']:>8.2f} {r['total_comm_kb']:>8.2f}KB")
+    print("-" * 56)
+    print(f"{'State Relay (ref)':>30s} {'---':>6s} {'39.60':>8s} {'12.00':>8s}KB")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run edge-cloud collaboration experiments")
     parser.add_argument('--cloud_ckpt', type=str, required=True)
@@ -348,13 +427,17 @@ def main():
                         help="Run compression rate experiment instead of main experiment")
     parser.add_argument('--multi_point', action='store_true',
                         help="Run multi-point direction correction experiment")
+    parser.add_argument('--multi_point_compress', action='store_true',
+                        help="Run multi-point compression sweep")
     parser.add_argument('--device', type=str, default='cuda')
     args = parser.parse_args()
 
     device = args.device if torch.cuda.is_available() else 'cpu'
     os.makedirs(args.output_dir, exist_ok=True)
 
-    if args.multi_point:
+    if args.multi_point_compress:
+        run_multi_point_compression(args, device)
+    elif args.multi_point:
         run_multi_point(args, device)
     elif args.compression_sweep:
         run_compression_sweep(args, device)
