@@ -237,6 +237,77 @@ class DirectionCorrectionSampler:
         }
 
     @torch.no_grad()
+    def sample_multi_point_correction(
+        self,
+        x_0: torch.Tensor,
+        query_points: list[float] = [0.3, 0.7],
+        total_steps: int = 20,
+        compress_fn=None,
+    ) -> dict:
+        """
+        Multi-point direction correction: query cloud at multiple t values.
+
+        Instead of a single δv at t*, we compute δv at each query point and
+        apply each δv to its corresponding segment.
+
+        Args:
+            x_0:           initial noise [B, C, H, W]
+            query_points:  sorted list of t values where cloud is queried
+            total_steps:   total Euler steps for the full [0, 1] path
+            compress_fn:   optional compression function for each δv
+
+        Returns:
+            dict with keys:
+                'x_final':    final generated image
+                'delta_vs':   list of raw δv at each query point
+                'num_queries': number of cloud queries
+        """
+        device = x_0.device
+        query_points = sorted(query_points)
+
+        # Build segment boundaries: [0, q1, q2, ..., 1]
+        boundaries = [0.0] + query_points + [1.0]
+
+        x = x_0.clone()
+        delta_vs = []
+
+        for i in range(len(boundaries) - 1):
+            t_start = boundaries[i]
+            t_end = boundaries[i + 1]
+            seg_steps = max(1, round(total_steps * (t_end - t_start)))
+            dt = (t_end - t_start) / seg_steps
+
+            # At each query point (except the first segment), compute δv
+            if i > 0:
+                t_q = boundaries[i]  # this is a query point
+                t_batch = torch.full((x.shape[0],), t_q, device=device)
+                v_edge = self.edge_model(x, t_batch)
+                v_cloud = self.cloud_model(x, t_batch)
+                delta_v = v_cloud - v_edge
+                if compress_fn is not None:
+                    delta_v = compress_fn(delta_v)
+                delta_vs.append(delta_v)
+                current_dv = delta_v
+            else:
+                current_dv = None
+
+            # Run edge with correction for this segment
+            t = t_start
+            for step in range(seg_steps):
+                t_batch = torch.full((x.shape[0],), t, device=device)
+                v = self.edge_model(x, t_batch)
+                if current_dv is not None:
+                    v = v + current_dv
+                x = x + v * dt
+                t += dt
+
+        return {
+            'x_final': x,
+            'delta_vs': delta_vs,
+            'num_queries': len(query_points),
+        }
+
+    @torch.no_grad()
     def sample_state_relay(
         self,
         x_0: torch.Tensor,

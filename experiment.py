@@ -246,6 +246,92 @@ def run_compression_sweep(args, device):
         print(f"{r['keep_ratio']:6.0%} {r['bits']:4d} {r['compression_ratio']:8.3f} {r['fid']:8.2f}")
 
 
+def run_multi_point(args, device):
+    """
+    Experiment 4: Multi-point direction correction.
+
+    Query cloud at multiple time points instead of a single t*.
+    Compare 1-point, 2-point, 3-point corrections.
+    """
+    print("\n" + "=" * 70)
+    print("EXPERIMENT 4: Multi-Point Direction Correction")
+    print("=" * 70)
+
+    cloud_model = load_model(build_cloud_model, args.cloud_ckpt, device)
+    edge_model = load_model(build_edge_model, args.edge_ckpt, device)
+    collab = DirectionCorrectionSampler(edge_model, cloud_model)
+    shape = (3, 32, 32)
+
+    ref_dir = prepare_cifar10_reference()
+
+    # Configurations: (label, query_points)
+    configs = [
+        ("1-point (t=0.7)",         [0.7]),
+        ("2-point (0.4, 0.8)",      [0.4, 0.8]),
+        ("2-point (0.3, 0.7)",      [0.3, 0.7]),
+        ("2-point (0.5, 0.8)",      [0.5, 0.8]),
+        ("3-point (0.3, 0.6, 0.8)", [0.3, 0.6, 0.8]),
+        ("3-point (0.2, 0.5, 0.8)", [0.2, 0.5, 0.8]),
+    ]
+
+    results = []
+
+    for label, qpts in configs:
+        print(f"\n--- {label} ---")
+        torch.manual_seed(42)
+
+        samples = generate_samples(
+            lambda x0, qp=qpts: collab.sample_multi_point_correction(
+                x0, query_points=qp, total_steps=args.edge_steps * 2,
+            ),
+            args.num_samples, args.batch_size, shape, device
+        )
+
+        tag = label.replace(" ", "_").replace(",", "").replace("(", "").replace(")", "")
+        gen_dir = save_samples_to_dir(samples, f"{args.output_dir}/multi_point/{tag}/")
+        fid = compute_fid(gen_dir, ref_dir, device=device)
+
+        # Communication cost: each query adds one δv (12KB uncompressed for CIFAR-10)
+        comm_kb = len(qpts) * 3 * 32 * 32 * 32 / 8 / 1024
+
+        entry = {
+            'label': label,
+            'query_points': qpts,
+            'num_queries': len(qpts),
+            'fid': fid,
+            'comm_kb': comm_kb,
+        }
+        results.append(entry)
+        print(f"  FID = {fid:.2f}, queries = {len(qpts)}, comm = {comm_kb:.1f} KB")
+
+    # Add baselines for reference
+    print("\n--- Baselines ---")
+    for name, sampler_fn, seed in [
+        ("Edge Only", lambda x0: collab.sample_edge_only(x0, num_steps=args.edge_steps * 2), 42),
+        ("State Relay (t*=0.5)", lambda x0: collab.sample_state_relay(x0, t_star=0.5, edge_steps=args.edge_steps, cloud_steps=args.cloud_steps), 42),
+    ]:
+        torch.manual_seed(seed)
+        samples = generate_samples(sampler_fn, args.num_samples, args.batch_size, shape, device)
+        tag = name.replace(" ", "_").replace("*", "").replace("(", "").replace(")", "").replace("=", "")
+        gen_dir = save_samples_to_dir(samples, f"{args.output_dir}/multi_point/{tag}/")
+        fid = compute_fid(gen_dir, ref_dir, device=device)
+        results.append({'label': name, 'query_points': [], 'num_queries': 0, 'fid': fid, 'comm_kb': 0 if 'Edge' in name else 12.0})
+        print(f"  {name}: FID = {fid:.2f}")
+
+    # Save results
+    results_path = os.path.join(args.output_dir, "experiment4_multi_point.json")
+    with open(results_path, 'w') as f:
+        json.dump(results, f, indent=2)
+    print(f"\nResults saved to {results_path}")
+
+    # Summary table
+    print("\n" + "=" * 60)
+    print(f"{'Method':>35s} {'Queries':>7s} {'FID':>8s} {'Comm':>8s}")
+    print("-" * 60)
+    for r in results:
+        print(f"{r['label']:>35s} {r['num_queries']:>7d} {r['fid']:>8.2f} {r['comm_kb']:>7.1f}KB")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run edge-cloud collaboration experiments")
     parser.add_argument('--cloud_ckpt', type=str, required=True)
@@ -260,13 +346,17 @@ def main():
     parser.add_argument('--output_dir', type=str, default='results/')
     parser.add_argument('--compression_sweep', action='store_true',
                         help="Run compression rate experiment instead of main experiment")
+    parser.add_argument('--multi_point', action='store_true',
+                        help="Run multi-point direction correction experiment")
     parser.add_argument('--device', type=str, default='cuda')
     args = parser.parse_args()
 
     device = args.device if torch.cuda.is_available() else 'cpu'
     os.makedirs(args.output_dir, exist_ok=True)
 
-    if args.compression_sweep:
+    if args.multi_point:
+        run_multi_point(args, device)
+    elif args.compression_sweep:
         run_compression_sweep(args, device)
     else:
         run_experiment_1(args, device)
