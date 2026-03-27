@@ -127,6 +127,33 @@ def compute_compression_ratio(
     }
 
 
+def compute_transmitted_size_kb(shape: tuple, keep_ratio: float = 0.1,
+                                bits: int = 8) -> float:
+    """
+    Compute exact transmitted data size in KB for a given tensor shape
+    and compression config. Used by AdaDC protocol for latency estimation.
+
+    Wire format: sparse (index, value) pairs + per-sample metadata.
+      - Each kept element: `bits` for value + 16 bits for index
+      - Metadata: 2 × 32 bits (min/max for dequantization)
+
+    Args:
+        shape: (C, H, W) or (B, C, H, W) tensor shape
+        keep_ratio: fraction of elements to keep
+        bits: quantization bits
+    Returns:
+        size in KB (per sample)
+    """
+    if len(shape) == 4:
+        _, C, H, W = shape
+    else:
+        C, H, W = shape
+    total_elements = C * H * W
+    kept_elements = max(1, int(total_elements * keep_ratio))
+    compressed_bits = kept_elements * (bits + 16) + 2 * 32
+    return compressed_bits / 8 / 1024
+
+
 def make_compress_fn(keep_ratio: float = 0.1, bits: int = 8):
     """Factory function that returns a compression callable for the sampler."""
     def fn(delta_v):

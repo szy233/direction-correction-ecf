@@ -347,6 +347,120 @@ class DirectionCorrectionSampler:
         """Reference: cloud model runs the entire path (upper bound on quality)."""
         return self.cloud_sampler.sample(x_0, num_steps=num_steps, t_start=0.0, t_end=1.0)
 
+    @torch.no_grad()
+    def sample_adaptive_correction(
+        self,
+        x_0: torch.Tensor,
+        candidate_query_points: list[float] = [0.3, 0.5, 0.7, 0.8],
+        query_decisions: list[bool] = None,
+        compress_fns: list = None,
+        total_steps: int = 20,
+    ) -> dict:
+        """
+        Adaptive direction correction: supports per-point query decisions
+        and per-point compression configs, decided by AdaDC protocol.
+
+        Args:
+            x_0: initial noise [B, C, H, W]
+            candidate_query_points: sorted list of potential query times
+            query_decisions: per-point bool, True=query cloud, False=skip
+                             If None, query all points.
+            compress_fns: per-point compression function (or None for no compression)
+                          Length must match number of True decisions.
+            total_steps: total Euler steps
+        Returns:
+            dict with x_final, delta_vs, query_log, timing
+        """
+        import time
+
+        device = x_0.device
+        candidate_query_points = sorted(candidate_query_points)
+
+        if query_decisions is None:
+            query_decisions = [True] * len(candidate_query_points)
+
+        # Build actual query points (where decision is True)
+        actual_queries = [t for t, d in zip(candidate_query_points, query_decisions) if d]
+
+        # Build segment boundaries
+        boundaries = [0.0] + actual_queries + [1.0]
+
+        x = x_0.clone()
+        delta_vs = []
+        query_log = []
+        compress_idx = 0
+
+        timing = {
+            'edge_compute_ms': 0.0,
+            'cloud_compute_ms': 0.0,
+            'phases': [],
+        }
+
+        for i in range(len(boundaries) - 1):
+            t_start = boundaries[i]
+            t_end = boundaries[i + 1]
+            seg_steps = max(1, round(total_steps * (t_end - t_start)))
+            dt = (t_end - t_start) / seg_steps
+
+            # At each query point, compute δv
+            if i > 0:
+                t_q = boundaries[i]
+                t_batch = torch.full((x.shape[0],), t_q, device=device)
+
+                t0 = time.perf_counter()
+                v_edge = self.edge_model(x, t_batch)
+                v_cloud = self.cloud_model(x, t_batch)
+                if device == 'cuda' or str(device).startswith('cuda'):
+                    torch.cuda.synchronize()
+                cloud_ms = (time.perf_counter() - t0) * 1000
+
+                delta_v = v_cloud - v_edge
+
+                # Apply per-point compression
+                if compress_fns and compress_idx < len(compress_fns):
+                    fn = compress_fns[compress_idx]
+                    if fn is not None:
+                        delta_v = fn(delta_v)
+                    compress_idx += 1
+
+                delta_vs.append(delta_v)
+                current_dv = delta_v
+                timing['cloud_compute_ms'] += cloud_ms
+
+                query_log.append({
+                    't': t_q,
+                    'queried': True,
+                    'cloud_ms': cloud_ms,
+                })
+            else:
+                current_dv = None
+
+            # Run edge Euler steps
+            t = t_start
+            t0 = time.perf_counter()
+            for step in range(seg_steps):
+                t_batch = torch.full((x.shape[0],), t, device=device)
+                v = self.edge_model(x, t_batch)
+                if current_dv is not None:
+                    v = v + current_dv
+                x = x + v * dt
+                t += dt
+            if device == 'cuda' or str(device).startswith('cuda'):
+                torch.cuda.synchronize()
+            edge_ms = (time.perf_counter() - t0) * 1000
+            timing['edge_compute_ms'] += edge_ms
+
+        timing['total_compute_ms'] = (timing['edge_compute_ms']
+                                       + timing['cloud_compute_ms'])
+
+        return {
+            'x_final': x,
+            'delta_vs': delta_vs,
+            'num_queries': len(actual_queries),
+            'query_log': query_log,
+            'timing': timing,
+        }
+
     @staticmethod
     def _compute_alpha(v_current: torch.Tensor, v_ref: torch.Tensor) -> torch.Tensor:
         """

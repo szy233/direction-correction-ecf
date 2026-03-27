@@ -1,0 +1,12 @@
+{
+  "t_star": 0.5,
+  "num_samples": 10000,
+  "fid_scores": {
+    "Cloud Only (ref)": 27.786020299871836,
+    "State Relay": 36.83509606118349,
+    "Direction Correction (ours)": 50.99233117936984,
+    "Edge Only": 61.35620535420054
+  },
+  "mean_alpha": 1.0,
+  "timestamp": "2026-03-22T08:23:53.120616"
+}

@@ -1,0 +1,137 @@
+[
+  {
+    "label": "2-point (0.5, 0.8)",
+    "query_points": [
+      0.5,
+      0.8
+    ],
+    "num_queries": 2,
+    "keep_ratio": 0.05,
+    "bits": 4,
+    "fid": 57.656703135184785,
+    "per_dv_kb": 0.38134765625,
+    "total_comm_kb": 0.7626953125
+  },
+  {
+    "label": "2-point (0.5, 0.8)",
+    "query_points": [
+      0.5,
+      0.8
+    ],
+    "num_queries": 2,
+    "keep_ratio": 0.1,
+    "bits": 4,
+    "fid": 54.528892156901804,
+    "per_dv_kb": 0.75732421875,
+    "total_comm_kb": 1.5146484375
+  },
+  {
+    "label": "2-point (0.5, 0.8)",
+    "query_points": [
+      0.5,
+      0.8
+    ],
+    "num_queries": 2,
+    "keep_ratio": 0.2,
+    "bits": 4,
+    "fid": 50.704885813153965,
+    "per_dv_kb": 1.5068359375,
+    "total_comm_kb": 3.013671875
+  },
+  {
+    "label": "2-point (0.5, 0.8)",
+    "query_points": [
+      0.5,
+      0.8
+    ],
+    "num_queries": 2,
+    "keep_ratio": 0.5,
+    "bits": 4,
+    "fid": 46.26675953858171,
+    "per_dv_kb": 3.7578125,
+    "total_comm_kb": 7.515625
+  },
+  {
+    "label": "2-point (0.5, 0.8)",
+    "query_points": [
+      0.5,
+      0.8
+    ],
+    "num_queries": 2,
+    "keep_ratio": 1.0,
+    "bits": 4,
+    "fid": 45.31325916890768,
+    "per_dv_kb": 7.5078125,
+    "total_comm_kb": 15.015625
+  },
+  {
+    "label": "3-point (0.3, 0.6, 0.8)",
+    "query_points": [
+      0.3,
+      0.6,
+      0.8
+    ],
+    "num_queries": 3,
+    "keep_ratio": 0.05,
+    "bits": 4,
+    "fid": 56.655120550272954,
+    "per_dv_kb": 0.38134765625,
+    "total_comm_kb": 1.14404296875
+  },
+  {
+    "label": "3-point (0.3, 0.6, 0.8)",
+    "query_points": [
+      0.3,
+      0.6,
+      0.8
+    ],
+    "num_queries": 3,
+    "keep_ratio": 0.1,
+    "bits": 4,
+    "fid": 52.8278147546535,
+    "per_dv_kb": 0.75732421875,
+    "total_comm_kb": 2.27197265625
+  },
+  {
+    "label": "3-point (0.3, 0.6, 0.8)",
+    "query_points": [
+      0.3,
+      0.6,
+      0.8
+    ],
+    "num_queries": 3,
+    "keep_ratio": 0.2,
+    "bits": 4,
+    "fid": 48.21512977959867,
+    "per_dv_kb": 1.5068359375,
+    "total_comm_kb": 4.5205078125
+  },
+  {
+    "label": "3-point (0.3, 0.6, 0.8)",
+    "query_points": [
+      0.3,
+      0.6,
+      0.8
+    ],
+    "num_queries": 3,
+    "keep_ratio": 0.5,
+    "bits": 4,
+    "fid": 42.75385825897689,
+    "per_dv_kb": 3.7578125,
+    "total_comm_kb": 11.2734375
+  },
+  {
+    "label": "3-point (0.3, 0.6, 0.8)",
+    "query_points": [
+      0.3,
+      0.6,
+      0.8
+    ],
+    "num_queries": 3,
+    "keep_ratio": 1.0,
+    "bits": 4,
+    "fid": 41.61513383366179,
+    "per_dv_kb": 7.5078125,
+    "total_comm_kb": 22.5234375
+  }
+]

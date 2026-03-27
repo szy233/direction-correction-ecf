@@ -1,0 +1,100 @@
+[
+  {
+    "keep_ratio": 0.01,
+    "bits": 4,
+    "fid": 64.95564531181151,
+    "compression_ratio": 0.006754557291666667,
+    "compressed_kb": 0.0810546875
+  },
+  {
+    "keep_ratio": 0.02,
+    "bits": 4,
+    "fid": 64.0213559159385,
+    "compression_ratio": 0.0130615234375,
+    "compressed_kb": 0.15673828125
+  },
+  {
+    "keep_ratio": 0.05,
+    "bits": 4,
+    "fid": 62.21114301215914,
+    "compression_ratio": 0.031778971354166664,
+    "compressed_kb": 0.38134765625
+  },
+  {
+    "keep_ratio": 0.1,
+    "bits": 4,
+    "fid": 60.010103874963875,
+    "compression_ratio": 0.0631103515625,
+    "compressed_kb": 0.75732421875
+  },
+  {
+    "keep_ratio": 0.2,
+    "bits": 4,
+    "fid": 57.63126377240229,
+    "compression_ratio": 0.12556966145833334,
+    "compressed_kb": 1.5068359375
+  },
+  {
+    "keep_ratio": 0.5,
+    "bits": 4,
+    "fid": 54.6394933619851,
+    "compression_ratio": 0.3131510416666667,
+    "compressed_kb": 3.7578125
+  },
+  {
+    "keep_ratio": 1.0,
+    "bits": 4,
+    "fid": 53.925669740660226,
+    "compression_ratio": 0.6256510416666666,
+    "compressed_kb": 7.5078125
+  },
+  {
+    "keep_ratio": 0.01,
+    "bits": 8,
+    "fid": 64.95393043276135,
+    "compression_ratio": 0.007975260416666666,
+    "compressed_kb": 0.095703125
+  },
+  {
+    "keep_ratio": 0.02,
+    "bits": 8,
+    "fid": 64.03071804426412,
+    "compression_ratio": 0.015543619791666666,
+    "compressed_kb": 0.1865234375
+  },
+  {
+    "keep_ratio": 0.05,
+    "bits": 8,
+    "fid": 62.18955399271516,
+    "compression_ratio": 0.038004557291666664,
+    "compressed_kb": 0.4560546875
+  },
+  {
+    "keep_ratio": 0.1,
+    "bits": 8,
+    "fid": 60.05644849854889,
+    "compression_ratio": 0.07560221354166667,
+    "compressed_kb": 0.9072265625
+  },
+  {
+    "keep_ratio": 0.2,
+    "bits": 8,
+    "fid": 57.59714171765853,
+    "compression_ratio": 0.15055338541666666,
+    "compressed_kb": 1.806640625
+  },
+  {
+    "keep_ratio": 0.5,
+    "bits": 8,
+    "fid": 54.636560711739435,
+    "compression_ratio": 0.3756510416666667,
+    "compressed_kb": 4.5078125
+  },
+  {
+    "keep_ratio": 1.0,
+    "bits": 8,
+    "fid": 53.93698302842836,
+    "compression_ratio": 0.7506510416666666,
+    "compressed_kb": 9.0078125
+  }
+]

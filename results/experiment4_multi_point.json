@@ -1,0 +1,77 @@
+[
+  {
+    "label": "1-point (t=0.7)",
+    "query_points": [
+      0.7
+    ],
+    "num_queries": 1,
+    "fid": 51.71915731773254,
+    "comm_kb": 12.0
+  },
+  {
+    "label": "2-point (0.4, 0.8)",
+    "query_points": [
+      0.4,
+      0.8
+    ],
+    "num_queries": 2,
+    "fid": 45.90316272536097,
+    "comm_kb": 24.0
+  },
+  {
+    "label": "2-point (0.3, 0.7)",
+    "query_points": [
+      0.3,
+      0.7
+    ],
+    "num_queries": 2,
+    "fid": 46.66873098745066,
+    "comm_kb": 24.0
+  },
+  {
+    "label": "2-point (0.5, 0.8)",
+    "query_points": [
+      0.5,
+      0.8
+    ],
+    "num_queries": 2,
+    "fid": 45.3912826746988,
+    "comm_kb": 24.0
+  },
+  {
+    "label": "3-point (0.3, 0.6, 0.8)",
+    "query_points": [
+      0.3,
+      0.6,
+      0.8
+    ],
+    "num_queries": 3,
+    "fid": 41.667333547334806,
+    "comm_kb": 36.0
+  },
+  {
+    "label": "3-point (0.2, 0.5, 0.8)",
+    "query_points": [
+      0.2,
+      0.5,
+      0.8
+    ],
+    "num_queries": 3,
+    "fid": 42.820731100250896,
+    "comm_kb": 36.0
+  },
+  {
+    "label": "Edge Only",
+    "query_points": [],
+    "num_queries": 0,
+    "fid": 63.893014495938644,
+    "comm_kb": 0
+  },
+  {
+    "label": "State Relay (t*=0.5)",
+    "query_points": [],
+    "num_queries": 0,
+    "fid": 39.59869879234577,
+    "comm_kb": 12.0
+  }
+]
